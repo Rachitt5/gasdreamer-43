@@ -5,7 +5,7 @@ import { truncateAddress } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, ExternalLink, ArrowRight } from "lucide-react";
+import { CheckCircle, Clock, ExternalLink, ArrowRight, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { networks } from "@/lib/gasData";
 
@@ -78,7 +78,11 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
               >
                 <div className="flex items-center">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                    <CheckCircle className="h-4 w-4 text-primary" />
+                    {tx.status === "success" ? (
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center">

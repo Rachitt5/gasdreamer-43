@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, ExternalLink, Clock, Filter } from "lucide-react";
+import { CheckCircle, ExternalLink, Clock, Filter, AlertCircle } from "lucide-react";
 import { truncateAddress } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,10 +19,19 @@ const History = () => {
     toast.success(`Switched to ${network.charAt(0).toUpperCase() + network.slice(1)} network`);
   };
   
-  const { data: transactions, isLoading } = useQuery({
+  const { data: transactions, isLoading, refetch } = useQuery({
     queryKey: ['transaction-history', selectedNetwork],
     queryFn: () => getTransactionHistory(selectedNetwork),
   });
+
+  // Determine explorer URL based on network
+  const getExplorerUrl = (hash: string, network: string) => {
+    const networkData = networks.find(n => n.id === network);
+    if (!networkData || !networkData.explorerUrl) {
+      return `https://etherscan.io/tx/${hash}`;
+    }
+    return `${networkData.explorerUrl}/tx/${hash}`;
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -38,10 +47,15 @@ const History = () => {
               Track and monitor your past transactions and gas savings
             </p>
           </div>
-          <Button variant="outline" className="mt-4 md:mt-0 w-full md:w-auto">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter Transactions
-          </Button>
+          <div className="flex gap-2 mt-4 md:mt-0">
+            <Button variant="outline" className="w-full md:w-auto" onClick={() => refetch()}>
+              Refresh
+            </Button>
+            <Button variant="outline" className="w-full md:w-auto">
+              <Filter className="h-4 w-4 mr-2" />
+              Filter Transactions
+            </Button>
+          </div>
         </div>
         
         <Card className="gas-card">
@@ -52,7 +66,7 @@ const History = () => {
           <CardContent>
             {isLoading ? (
               <div className="space-y-3 mt-2">
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="border rounded-lg p-3 animate-pulse h-20"></div>
                 ))}
               </div>
@@ -62,6 +76,13 @@ const History = () => {
                   <Clock className="h-6 w-6 text-primary" />
                 </div>
                 <p className="text-center text-muted-foreground">No transactions found</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => refetch()}
+                >
+                  Refresh
+                </Button>
               </div>
             ) : (
               <div className="space-y-3 mt-2">
@@ -73,7 +94,11 @@ const History = () => {
                   >
                     <div className="flex items-center">
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                        <CheckCircle className="h-4 w-4 text-primary" />
+                        {tx.status === "success" ? (
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                        )}
                       </div>
                       <div>
                         <div className="flex items-center">
@@ -92,7 +117,7 @@ const History = () => {
                             {truncateAddress(tx.hash)}
                           </span>
                           <a 
-                            href={`https://etherscan.io/tx/${tx.hash}`} 
+                            href={getExplorerUrl(tx.hash, tx.network)} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="inline-flex"

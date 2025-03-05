@@ -35,7 +35,8 @@ export const networks: NetworkData[] = [
     symbol: "ETH",
     gasUnit: "Gwei",
     color: "#627EEA",
-    explorerUrl: "https://etherscan.io"
+    explorerUrl: "https://etherscan.io",
+    icon: "ethereum-icon"
   },
   {
     id: "polygon",
@@ -43,7 +44,8 @@ export const networks: NetworkData[] = [
     symbol: "MATIC",
     gasUnit: "Gwei",
     color: "#8247E5",
-    explorerUrl: "https://polygonscan.com"
+    explorerUrl: "https://polygonscan.com",
+    icon: "polygon-icon"
   },
   {
     id: "arbitrum",
@@ -51,7 +53,8 @@ export const networks: NetworkData[] = [
     symbol: "ETH",
     gasUnit: "Gwei",
     color: "#28A0F0",
-    explorerUrl: "https://arbiscan.io"
+    explorerUrl: "https://arbiscan.io",
+    icon: "arbitrum-icon"
   },
   {
     id: "optimism",
@@ -59,7 +62,8 @@ export const networks: NetworkData[] = [
     symbol: "ETH",
     gasUnit: "Gwei",
     color: "#FF0420",
-    explorerUrl: "https://optimistic.etherscan.io"
+    explorerUrl: "https://optimistic.etherscan.io",
+    icon: "optimism-icon"
   },
   {
     id: "base",
@@ -67,11 +71,11 @@ export const networks: NetworkData[] = [
     symbol: "ETH",
     gasUnit: "Gwei",
     color: "#0052FF",
-    explorerUrl: "https://basescan.org"
+    explorerUrl: "https://basescan.org",
+    icon: "base-icon"
   }
 ];
 
-// Mock gas data by network
 export const mockGasPrices: Record<string, GasPrice> = {
   ethereum: {
     network: "ethereum",
@@ -120,7 +124,6 @@ export const mockGasPrices: Record<string, GasPrice> = {
   }
 };
 
-// Mock transaction types
 export const transactionTypes = [
   { id: "transfer", name: "Token Transfer", gasEstimate: 21000 },
   { id: "swap", name: "Token Swap", gasEstimate: 120000 },
@@ -129,7 +132,6 @@ export const transactionTypes = [
   { id: "stake", name: "Staking", gasEstimate: 100000 }
 ];
 
-// Mock AI predictions for gas prices - predicts the next 24 hours
 export const mockPredictions: Record<string, Prediction[]> = {
   ethereum: Array.from({ length: 24 }, (_, i) => ({
     hour: i,
@@ -153,7 +155,6 @@ export const mockPredictions: Record<string, Prediction[]> = {
   }))
 };
 
-// Mock historical gas data for the past week
 export const mockHistoricalData: Record<string, HistoricalGasData[]> = {
   ethereum: Array.from({ length: 7 * 24 }, (_, i) => ({
     timestamp: new Date(Date.now() - (7 * 24 - i) * 60 * 60 * 1000).toISOString(),
@@ -177,21 +178,18 @@ export const mockHistoricalData: Record<string, HistoricalGasData[]> = {
   }))
 };
 
-// Find optimum time in the next 24 hours
 export function findOptimumTime(networkId: string): { hour: number; price: number } {
   const predictions = mockPredictions[networkId] || mockPredictions.ethereum;
   return predictions.reduce((min, p) => 
     p.price < min.price ? p : min, predictions[0]);
 }
 
-// Find maximum time in the next 24 hours
 export function findMaximumTime(networkId: string): { hour: number; price: number } {
   const predictions = mockPredictions[networkId] || mockPredictions.ethereum;
   return predictions.reduce((max, p) => 
     p.price > max.price ? p : max, predictions[0]);
 }
 
-// Mock transaction history
 export const mockTransactionHistory = [
   {
     hash: "0x7a6e9e123f3d5b4a8c3e9f1e2d1c0b9a8f7e6d5c",
@@ -231,21 +229,16 @@ export const mockTransactionHistory = [
   }
 ];
 
-// Calculate estimate fee in USD
 export function calculateFeeInUSD(gasLimit: number, gasPrice: number, network: string): number {
   const { symbol, usdPrice } = mockGasPrices[network] || mockGasPrices.ethereum;
   
-  // Convert to proper units based on network
   let ethCost;
   
   if (network === "ethereum" || network === "arbitrum" || network === "optimism") {
-    // ETH uses Gwei, 1 Gwei = 10^9 Wei, 1 ETH = 10^18 Wei
     ethCost = (gasLimit * gasPrice * 10**9) / 10**18;
   } else if (network === "polygon") {
-    // Similar to ETH but with MATIC
     ethCost = (gasLimit * gasPrice * 10**9) / 10**18;
   } else if (network === "bsc") {
-    // BNB uses Gwei like ETH
     ethCost = (gasLimit * gasPrice * 10**9) / 10**18;
   } else {
     ethCost = 0;

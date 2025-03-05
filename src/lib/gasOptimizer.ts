@@ -191,10 +191,13 @@ export async function deployOptimizedTransaction(
   transactionType: string,
   optimizedGasPrice: number
 ): Promise<{hash: string, status: string}> {
+  // Simulate network delay for realism
   await new Promise(resolve => setTimeout(resolve, 2000));
   
+  // Generate a valid transaction hash
   const hash = generateTransactionHash();
   
+  // Find the transaction type details
   const txType = transactionTypes.find((t) => t.id === transactionType);
   if (txType) {
     const gasEstimate = txType.gasEstimate;
@@ -203,7 +206,8 @@ export async function deployOptimizedTransaction(
     const originalGasFee = Number(((gasEstimate * currentGasPrice * 10**9) / 10**18).toFixed(4));
     const savings = Number((originalGasFee - gasFee).toFixed(4));
     
-    const newTransaction = {
+    // Create the transaction record
+    const newTransaction: Transaction = {
       hash,
       type: txType.name,
       status: "success",
@@ -225,8 +229,18 @@ export async function deployOptimizedTransaction(
     if (transactionCache[networkId]) {
       transactionCache[networkId].unshift(newTransaction);
     }
+    
+    console.log("Transaction deployed:", newTransaction);
+    
+    toast.success("Transaction deployed successfully!");
+    
+    return {
+      hash,
+      status: "success"
+    };
   }
   
+  // If transaction type not found, return a generic success
   toast.success("Transaction deployed successfully!");
   
   return {

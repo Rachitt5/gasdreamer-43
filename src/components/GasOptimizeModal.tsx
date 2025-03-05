@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Check, Clock, TrendingDown, Flame, Loader2 } from "lucide-react";
 import { formatGwei, formatUSD } from "@/lib/utils";
 import { optimizeGasFee, bundleTransactions, deployOptimizedTransaction } from "@/lib/gasOptimizer";
@@ -33,7 +34,7 @@ export function GasOptimizeModal({
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [deploymentStatus, setDeploymentStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
 
-  useState(() => {
+  useEffect(() => {
     if (transactionType && open) {
       setSelectedTxTypes([transactionType]);
     }
