@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gauge, Rocket, BadgePercent } from "lucide-react";
 import { transactionTypes } from "@/lib/gasData";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
@@ -161,9 +162,11 @@ const Index = () => {
                         variant="outline" 
                         className="w-full mt-2" 
                         size="sm"
-                        onClick={() => setOptimizeModalOpen(true)}
+                        asChild
                       >
-                        View All Transactions
+                        <Link to="/optimize">
+                          View All Transactions
+                        </Link>
                       </Button>
                     </div>
                   </CardContent>
@@ -173,7 +176,7 @@ const Index = () => {
             
             {/* Transaction History */}
             <div>
-              <TransactionHistory />
+              <TransactionHistory networkId={selectedNetwork} limit={3} />
             </div>
           </div>
         )}

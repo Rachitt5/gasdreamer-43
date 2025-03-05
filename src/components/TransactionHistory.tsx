@@ -1,19 +1,46 @@
 
-import { mockTransactionHistory } from "@/lib/gasData";
+import { useQuery } from "@tanstack/react-query";
+import { getTransactionHistory } from "@/lib/gasOptimizer";
 import { truncateAddress } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Clock, ExternalLink, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { networks } from "@/lib/gasData";
 
-export function TransactionHistory() {
+interface TransactionHistoryProps {
+  networkId: string;
+  limit?: number;
+}
+
+export function TransactionHistory({ networkId, limit = 3 }: TransactionHistoryProps) {
+  const { data: transactions, isLoading } = useQuery({
+    queryKey: ['transaction-history', networkId, limit],
+    queryFn: () => getTransactionHistory(networkId, limit),
+  });
+
   return (
     <Card className="gas-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Recent Transactions</CardTitle>
-        <CardDescription>Your recent transaction history</CardDescription>
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-lg">Recent Transactions</CardTitle>
+          <CardDescription>Your recent transaction history</CardDescription>
+        </div>
+        <Button variant="ghost" size="sm" asChild className="ml-auto">
+          <Link to="/history">
+            View All <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </CardHeader>
       <CardContent>
-        {mockTransactionHistory.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3 mt-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border rounded-lg p-3 animate-pulse h-20"></div>
+            ))}
+          </div>
+        ) : transactions && transactions.length === 0 ? (
           <div className="h-64 flex items-center justify-center flex-col">
             <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
               <Clock className="h-6 w-6 text-primary" />
@@ -22,7 +49,7 @@ export function TransactionHistory() {
           </div>
         ) : (
           <div className="space-y-3 mt-2">
-            {mockTransactionHistory.map((tx, index) => (
+            {transactions?.map((tx, index) => (
               <div 
                 key={tx.hash} 
                 className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in-up"
@@ -38,22 +65,39 @@ export function TransactionHistory() {
                       <Badge variant="outline" className="ml-2 text-xs">
                         {tx.network}
                       </Badge>
+                      {tx.optimized && (
+                        <Badge variant="outline" className="ml-2 text-xs bg-primary/10 text-primary border-primary/10">
+                          Optimized
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center mt-1">
                       <span className="text-xs text-muted-foreground">
                         {truncateAddress(tx.hash)}
                       </span>
-                      <ExternalLink className="h-3 w-3 ml-1 text-muted-foreground cursor-pointer" />
+                      <a 
+                        href={`https://etherscan.io/tx/${tx.hash}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex"
+                      >
+                        <ExternalLink className="h-3 w-3 ml-1 text-muted-foreground cursor-pointer" />
+                      </a>
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col sm:items-end">
                   <Badge variant="outline" className="w-fit bg-gas-low/10 text-gas-low border-gas-low/10">
-                    {tx.gasFee} ETH
+                    {tx.gasFee} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
                   </Badge>
                   <span className="text-xs text-muted-foreground mt-1">
                     {tx.time} • {tx.gasUsed.toLocaleString()} gas used
                   </span>
+                  {tx.savings > 0 && (
+                    <span className="text-xs text-gas-low mt-1">
+                      Saved: {tx.savings} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

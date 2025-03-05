@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { WalletConnect } from "@/components/WalletConnect";
 import { NetworkSelector } from "@/components/NetworkSelector";
 import { Wallet, Menu } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 interface HeaderProps {
   onNetworkChange?: (network: string) => void;
@@ -11,6 +12,9 @@ interface HeaderProps {
 
 export function Header({ onNetworkChange }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  
+  const isActive = (path: string) => location.pathname === path;
   
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/30">
@@ -24,14 +28,29 @@ export function Header({ onNetworkChange }: HeaderProps) {
           </div>
           
           <div className="hidden md:flex items-center space-x-1">
-            <Button variant="ghost" size="sm" className="text-sm font-medium">
-              Dashboard
+            <Button 
+              variant={isActive("/") ? "default" : "ghost"} 
+              size="sm" 
+              className="text-sm font-medium"
+              asChild
+            >
+              <Link to="/">Dashboard</Link>
             </Button>
-            <Button variant="ghost" size="sm" className="text-sm font-medium">
-              Optimize
+            <Button 
+              variant={isActive("/optimize") ? "default" : "ghost"} 
+              size="sm" 
+              className="text-sm font-medium"
+              asChild
+            >
+              <Link to="/optimize">Optimize</Link>
             </Button>
-            <Button variant="ghost" size="sm" className="text-sm font-medium">
-              History
+            <Button 
+              variant={isActive("/history") ? "default" : "ghost"} 
+              size="sm" 
+              className="text-sm font-medium"
+              asChild
+            >
+              <Link to="/history">History</Link>
             </Button>
           </div>
         </div>
@@ -51,14 +70,29 @@ export function Header({ onNetworkChange }: HeaderProps) {
       {menuOpen && (
         <div className="md:hidden px-4 pb-4 pt-2 glass border-b border-border/30 animate-fade-in">
           <div className="flex flex-col space-y-1">
-            <Button variant="ghost" size="sm" className="justify-start text-sm font-medium">
-              Dashboard
+            <Button 
+              variant={isActive("/") ? "default" : "ghost"} 
+              size="sm" 
+              className="justify-start text-sm font-medium"
+              asChild
+            >
+              <Link to="/">Dashboard</Link>
             </Button>
-            <Button variant="ghost" size="sm" className="justify-start text-sm font-medium">
-              Optimize
+            <Button 
+              variant={isActive("/optimize") ? "default" : "ghost"} 
+              size="sm" 
+              className="justify-start text-sm font-medium"
+              asChild
+            >
+              <Link to="/optimize">Optimize</Link>
             </Button>
-            <Button variant="ghost" size="sm" className="justify-start text-sm font-medium">
-              History
+            <Button 
+              variant={isActive("/history") ? "default" : "ghost"} 
+              size="sm" 
+              className="justify-start text-sm font-medium"
+              asChild
+            >
+              <Link to="/history">History</Link>
             </Button>
             <div className="pt-2">
               <NetworkSelector isMobile onNetworkChange={onNetworkChange} />
