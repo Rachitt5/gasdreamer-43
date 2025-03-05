@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { transactionTypes, mockGasPrices, networks } from "./gasData";
 import { formatGwei, formatUSD, calculateFeeInUSD } from "./utils";
@@ -23,14 +24,27 @@ export interface Transaction {
   savings?: number;
 }
 
+// Store deployed transactions to ensure they show up in history
+const deployedTransactions: Record<string, Transaction[]> = {};
+
+// Create a more realistic transaction hash
+const generateTransactionHash = () => {
+  return "0x" + Array.from({length: 64}, () => 
+    Math.floor(Math.random() * 16).toString(16)).join('');
+};
+
 const generateMockTransactions = (networkId: string, count: number = 10): Transaction[] => {
   const network = networks.find(n => n.id === networkId) || networks[0];
   const txTypes = transactionTypes.map(t => t.name);
   const timeframes = ["Just now", "2 minutes ago", "15 minutes ago", "1 hour ago", "3 hours ago", "Yesterday", "2 days ago"];
   
-  return Array.from({ length: count }, (_, i) => {
-    const hash = "0x" + Array.from({length: 64}, () => 
-      Math.floor(Math.random() * 16).toString(16)).join('');
+  // Include deployed transactions first
+  const deployed = deployedTransactions[networkId] || [];
+  
+  // Generate additional random transactions if needed
+  const additional = count - deployed.length;
+  const randomTransactions = additional > 0 ? Array.from({ length: additional }, (_, i) => {
+    const hash = generateTransactionHash();
     
     const type = txTypes[Math.floor(Math.random() * txTypes.length)];
     
@@ -59,7 +73,9 @@ const generateMockTransactions = (networkId: string, count: number = 10): Transa
       optimized,
       savings
     };
-  });
+  }) : [];
+  
+  return [...deployed, ...randomTransactions];
 };
 
 const transactionCache: Record<string, Transaction[]> = {};
@@ -68,11 +84,28 @@ const transactionCache: Record<string, Transaction[]> = {};
  * Get transaction history for a network
  */
 export async function getTransactionHistory(networkId: string, limit?: number): Promise<Transaction[]> {
-  if (!transactionCache[networkId]) {
+  // If we have deployed transactions, include them first
+  if (deployedTransactions[networkId] && deployedTransactions[networkId].length > 0) {
+    if (!transactionCache[networkId]) {
+      transactionCache[networkId] = [];
+    }
+    
+    // Add deployed transactions to the front of the cache
+    const existingHashes = new Set(transactionCache[networkId].map(tx => tx.hash));
+    for (const tx of deployedTransactions[networkId]) {
+      if (!existingHashes.has(tx.hash)) {
+        transactionCache[networkId].unshift(tx);
+        existingHashes.add(tx.hash);
+      }
+    }
+  }
+  
+  // Generate or use cached transactions
+  if (!transactionCache[networkId] || transactionCache[networkId].length < 5) {
     transactionCache[networkId] = generateMockTransactions(networkId, 20);
   }
   
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 800));
   
   return limit ? transactionCache[networkId].slice(0, limit) : transactionCache[networkId];
 }
@@ -158,20 +191,19 @@ export async function deployOptimizedTransaction(
   transactionType: string,
   optimizedGasPrice: number
 ): Promise<{hash: string, status: string}> {
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
-  const hash = "0x" + Array.from({length: 64}, () => 
-    Math.floor(Math.random() * 16).toString(16)).join('');
+  const hash = generateTransactionHash();
   
   const txType = transactionTypes.find((t) => t.id === transactionType);
-  if (txType && transactionCache[networkId]) {
+  if (txType) {
     const gasEstimate = txType.gasEstimate;
     const currentGasPrice = mockGasPrices[networkId]?.standard || 30;
     const gasFee = Number(((gasEstimate * optimizedGasPrice * 10**9) / 10**18).toFixed(4));
     const originalGasFee = Number(((gasEstimate * currentGasPrice * 10**9) / 10**18).toFixed(4));
     const savings = Number((originalGasFee - gasFee).toFixed(4));
     
-    transactionCache[networkId].unshift({
+    const newTransaction = {
       hash,
       type: txType.name,
       status: "success",
@@ -181,7 +213,18 @@ export async function deployOptimizedTransaction(
       network: networkId,
       optimized: true,
       savings
-    });
+    };
+    
+    // Store the deployed transaction
+    if (!deployedTransactions[networkId]) {
+      deployedTransactions[networkId] = [];
+    }
+    deployedTransactions[networkId].unshift(newTransaction);
+    
+    // Also update the cache if it exists
+    if (transactionCache[networkId]) {
+      transactionCache[networkId].unshift(newTransaction);
+    }
   }
   
   toast.success("Transaction deployed successfully!");

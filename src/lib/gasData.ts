@@ -1,4 +1,3 @@
-
 export interface GasPrice {
   network: string;
   symbol: string;
@@ -15,6 +14,8 @@ export interface NetworkData {
   icon: string;
   color: string;
   symbol: string;
+  gasUnit: string;
+  explorerUrl: string;
 }
 
 export interface Prediction {
@@ -31,37 +32,42 @@ export const networks: NetworkData[] = [
   {
     id: "ethereum",
     name: "Ethereum",
-    icon: "eth",
+    symbol: "ETH",
+    gasUnit: "Gwei",
     color: "#627EEA",
-    symbol: "ETH"
+    explorerUrl: "https://etherscan.io"
   },
   {
     id: "polygon",
     name: "Polygon",
-    icon: "polygon",
+    symbol: "MATIC",
+    gasUnit: "Gwei",
     color: "#8247E5",
-    symbol: "MATIC"
-  },
-  {
-    id: "bsc",
-    name: "BNB Chain",
-    icon: "bnb",
-    color: "#F3BA2F",
-    symbol: "BNB"
+    explorerUrl: "https://polygonscan.com"
   },
   {
     id: "arbitrum",
     name: "Arbitrum",
-    icon: "arbitrum",
+    symbol: "ETH",
+    gasUnit: "Gwei",
     color: "#28A0F0",
-    symbol: "ETH"
+    explorerUrl: "https://arbiscan.io"
   },
   {
     id: "optimism",
     name: "Optimism",
-    icon: "optimism",
+    symbol: "ETH",
+    gasUnit: "Gwei",
     color: "#FF0420",
-    symbol: "ETH"
+    explorerUrl: "https://optimistic.etherscan.io"
+  },
+  {
+    id: "base",
+    name: "Base",
+    symbol: "ETH",
+    gasUnit: "Gwei",
+    color: "#0052FF",
+    explorerUrl: "https://basescan.org"
   }
 ];
 

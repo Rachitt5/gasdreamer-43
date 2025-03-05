@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Check, Clock, TrendingDown, Flame, Loader2 } from "lucide-react";
 import { formatGwei, formatUSD } from "@/lib/utils";
@@ -19,18 +18,26 @@ interface GasOptimizeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   networkId: string;
+  transactionType?: string;
 }
 
 export function GasOptimizeModal({ 
   open, 
   onOpenChange,
-  networkId = "ethereum"
+  networkId = "ethereum",
+  transactionType
 }: GasOptimizeModalProps) {
   const [step, setStep] = useState<"select" | "optimize" | "review" | "deploy">("select");
   const [selectedTxTypes, setSelectedTxTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [deploymentStatus, setDeploymentStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
+
+  useState(() => {
+    if (transactionType && open) {
+      setSelectedTxTypes([transactionType]);
+    }
+  }, [transactionType, open]);
 
   const handleOptimize = async () => {
     setLoading(true);
@@ -43,7 +50,7 @@ export function GasOptimizeModal({
         toast.success("Transactions bundled to save gas!");
       } else {
         // Optimize single transaction
-        const txType = selectedTxTypes[0] || "transfer";
+        const txType = selectedTxTypes[0] || transactionType || "transfer";
         result = await optimizeGasFee(networkId, txType);
         toast.success("Gas optimization complete!");
       }
@@ -63,7 +70,7 @@ export function GasOptimizeModal({
     
     setDeploymentStatus("pending");
     try {
-      const txType = selectedTxTypes[0] || "transfer";
+      const txType = selectedTxTypes[0] || transactionType || "transfer";
       const result = await deployOptimizedTransaction(
         networkId,
         txType,

@@ -12,13 +12,25 @@ import { networks } from "@/lib/gasData";
 interface TransactionHistoryProps {
   networkId: string;
   limit?: number;
+  showViewAll?: boolean;
 }
 
-export function TransactionHistory({ networkId, limit = 3 }: TransactionHistoryProps) {
-  const { data: transactions, isLoading } = useQuery({
+export function TransactionHistory({ networkId, limit = 3, showViewAll = true }: TransactionHistoryProps) {
+  const { data: transactions, isLoading, refetch } = useQuery({
     queryKey: ['transaction-history', networkId, limit],
     queryFn: () => getTransactionHistory(networkId, limit),
+    refetchOnWindowFocus: true,
+    staleTime: 10000, // Refetch after 10 seconds
   });
+
+  // Determine explorer URL based on network
+  const getExplorerUrl = (hash: string, network: string) => {
+    const networkData = networks.find(n => n.id === network);
+    if (!networkData || !networkData.explorerUrl) {
+      return `https://etherscan.io/tx/${hash}`;
+    }
+    return `${networkData.explorerUrl}/tx/${hash}`;
+  };
 
   return (
     <Card className="gas-card">
@@ -27,11 +39,13 @@ export function TransactionHistory({ networkId, limit = 3 }: TransactionHistoryP
           <CardTitle className="text-lg">Recent Transactions</CardTitle>
           <CardDescription>Your recent transaction history</CardDescription>
         </div>
-        <Button variant="ghost" size="sm" asChild className="ml-auto">
-          <Link to="/history">
-            View All <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        {showViewAll && (
+          <Button variant="ghost" size="sm" asChild className="ml-auto">
+            <Link to="/history">
+              View All <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -46,6 +60,13 @@ export function TransactionHistory({ networkId, limit = 3 }: TransactionHistoryP
               <Clock className="h-6 w-6 text-primary" />
             </div>
             <p className="text-center text-muted-foreground">No transactions found</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => refetch()}
+            >
+              Refresh
+            </Button>
           </div>
         ) : (
           <div className="space-y-3 mt-2">
@@ -76,7 +97,7 @@ export function TransactionHistory({ networkId, limit = 3 }: TransactionHistoryP
                         {truncateAddress(tx.hash)}
                       </span>
                       <a 
-                        href={`https://etherscan.io/tx/${tx.hash}`} 
+                        href={getExplorerUrl(tx.hash, tx.network)} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="inline-flex"
