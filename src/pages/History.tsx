@@ -48,6 +48,14 @@ const History = () => {
     return `${networkData.explorerUrl}/tx/${hash}`;
   };
 
+  // Add verification for block hash connectivity
+  const verifyBlockHash = (hash: string) => {
+    if (!hash || hash.length < 66) {
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header onNetworkChange={handleNetworkChange} />
@@ -140,19 +148,28 @@ const History = () => {
                               Optimized
                             </Badge>
                           )}
+                          {!verifyBlockHash(tx.hash) && (
+                            <Badge variant="outline" className="ml-2 text-xs bg-destructive/10 text-destructive border-destructive/10">
+                              Hash Issue
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center mt-1">
                           <span className="text-xs text-muted-foreground">
                             {truncateAddress(tx.hash)}
                           </span>
-                          <a 
-                            href={getExplorerUrl(tx.hash, tx.network)} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex"
-                          >
-                            <ExternalLink className="h-3 w-3 ml-1 text-muted-foreground cursor-pointer" />
-                          </a>
+                          {verifyBlockHash(tx.hash) ? (
+                            <a 
+                              href={getExplorerUrl(tx.hash, tx.network)} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex"
+                            >
+                              <ExternalLink className="h-3 w-3 ml-1 text-muted-foreground cursor-pointer" />
+                            </a>
+                          ) : (
+                            <span className="ml-1 text-xs text-destructive">Not connected</span>
+                          )}
                         </div>
                       </div>
                     </div>

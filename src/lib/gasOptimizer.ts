@@ -22,6 +22,7 @@ export interface Transaction {
   network: string;
   optimized?: boolean;
   savings?: number;
+  blockHash?: string;
 }
 
 // Store deployed transactions to ensure they show up in history
@@ -36,22 +37,32 @@ const deployedTransactions: Record<string, Transaction[]> = {
 // Cache for mock transactions
 const transactionCache: Record<string, Transaction[]> = {};
 
-// Create a valid transaction hash with proper format
+// Create a valid transaction hash with proper format (66 characters)
 const generateTransactionHash = () => {
   return "0x" + Array.from({length: 64}, () => 
     Math.floor(Math.random() * 16).toString(16)).join('');
 };
 
+// Generate block hash for transaction connections
+const generateBlockHash = () => {
+  return "0x" + Array.from({length: 64}, () => 
+    Math.floor(Math.random() * 16).toString(16)).join('');
+};
+
 // Simulate smart contract interaction
-const simulateContractCall = async (networkId: string): Promise<boolean> => {
+const simulateContractCall = async (networkId: string): Promise<{success: boolean, blockHash?: string}> => {
   console.log(`Simulating contract call on network: ${networkId}`);
   // Simulate network latency and contract execution
   await new Promise(resolve => setTimeout(resolve, 1500));
   
   // 95% success rate for simulation
   const success = Math.random() < 0.95;
-  console.log(`Contract call simulation result: ${success ? 'success' : 'failed'}`);
-  return success;
+  
+  // Generate block hash for successful transactions
+  const blockHash = success ? generateBlockHash() : undefined;
+  
+  console.log(`Contract call simulation result: ${success ? 'success' : 'failed'}, blockHash: ${blockHash || 'none'}`);
+  return { success, blockHash };
 };
 
 const generateMockTransactions = (networkId: string, count: number = 10): Transaction[] => {
@@ -61,6 +72,7 @@ const generateMockTransactions = (networkId: string, count: number = 10): Transa
   
   return Array.from({ length: count }, (_, i) => {
     const hash = generateTransactionHash();
+    const blockHash = generateBlockHash();
     
     const type = txTypes[Math.floor(Math.random() * txTypes.length)];
     
@@ -87,7 +99,8 @@ const generateMockTransactions = (networkId: string, count: number = 10): Transa
       gasFee,
       network: networkId,
       optimized,
-      savings
+      savings,
+      blockHash
     };
   });
 };
@@ -222,7 +235,7 @@ export async function deployOptimizedTransaction(
   networkId: string,
   transactionType: string,
   optimizedGasPrice: number
-): Promise<{hash: string, status: string}> {
+): Promise<{hash: string, status: string, blockHash?: string}> {
   console.log(`Deploying transaction on ${networkId} network for type: ${transactionType}`);
   
   // Create a pending transaction first so the UI can show it immediately
@@ -263,7 +276,7 @@ export async function deployOptimizedTransaction(
   
   try {
     // Simulate contract interaction
-    const contractCallSuccess = await simulateContractCall(networkId);
+    const { success: contractCallSuccess, blockHash } = await simulateContractCall(networkId);
     
     if (!contractCallSuccess) {
       console.error("Smart contract execution failed");
@@ -290,6 +303,7 @@ export async function deployOptimizedTransaction(
     if (idx !== -1) {
       deployedTransactions[networkId][idx].status = "success";
       deployedTransactions[networkId][idx].savings = savings;
+      deployedTransactions[networkId][idx].blockHash = blockHash;
     } else {
       console.error("Could not find pending transaction to update:", pendingHash);
     }
@@ -301,7 +315,8 @@ export async function deployOptimizedTransaction(
     
     return {
       hash: pendingHash,
-      status: "success"
+      status: "success",
+      blockHash
     };
   } catch (error) {
     console.error("Transaction deployment error:", error);
