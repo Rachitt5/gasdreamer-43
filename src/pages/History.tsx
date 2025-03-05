@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,21 @@ const History = () => {
     queryKey: ['transaction-history', selectedNetwork],
     queryFn: () => getTransactionHistory(selectedNetwork),
     refetchOnMount: true,
+    staleTime: 5000, // Refresh data more frequently
   });
+
+  // Auto-refresh data
+  useEffect(() => {
+    // Refresh immediately when network changes
+    refetch();
+    
+    // Set up interval to refresh every 20 seconds
+    const intervalId = setInterval(() => {
+      refetch();
+    }, 20000);
+    
+    return () => clearInterval(intervalId);
+  }, [selectedNetwork, refetch]);
 
   // Determine explorer URL based on network
   const getExplorerUrl = (hash: string, network: string) => {
@@ -104,6 +118,8 @@ const History = () => {
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
                         {tx.status === "success" ? (
                           <CheckCircle className="h-4 w-4 text-primary" />
+                        ) : tx.status === "pending" ? (
+                          <Clock className="h-4 w-4 text-primary animate-pulse" />
                         ) : (
                           <AlertCircle className="h-4 w-4 text-destructive" />
                         )}
@@ -114,6 +130,11 @@ const History = () => {
                           <Badge variant="outline" className="ml-2 text-xs">
                             {tx.network}
                           </Badge>
+                          {tx.status === "pending" && (
+                            <Badge variant="outline" className="ml-2 text-xs bg-amber-500/10 text-amber-500 border-amber-500/10">
+                              Pending
+                            </Badge>
+                          )}
                           {tx.optimized && (
                             <Badge variant="outline" className="ml-2 text-xs bg-primary/10 text-primary border-primary/10">
                               Optimized

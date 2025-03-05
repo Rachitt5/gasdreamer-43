@@ -25,7 +25,15 @@ export interface Transaction {
 }
 
 // Store deployed transactions to ensure they show up in history
-const deployedTransactions: Record<string, Transaction[]> = {};
+const deployedTransactions: Record<string, Transaction[]> = {
+  ethereum: [],
+  polygon: [],
+  arbitrum: [],
+  optimism: [],
+  base: []
+};
+
+// Cache for mock transactions
 const transactionCache: Record<string, Transaction[]> = {};
 
 // Create a valid transaction hash with proper format
@@ -36,11 +44,14 @@ const generateTransactionHash = () => {
 
 // Simulate smart contract interaction
 const simulateContractCall = async (networkId: string): Promise<boolean> => {
+  console.log(`Simulating contract call on network: ${networkId}`);
   // Simulate network latency and contract execution
   await new Promise(resolve => setTimeout(resolve, 1500));
   
   // 95% success rate for simulation
-  return Math.random() < 0.95;
+  const success = Math.random() < 0.95;
+  console.log(`Contract call simulation result: ${success ? 'success' : 'failed'}`);
+  return success;
 };
 
 const generateMockTransactions = (networkId: string, count: number = 10): Transaction[] => {
@@ -85,8 +96,17 @@ const generateMockTransactions = (networkId: string, count: number = 10): Transa
  * Get transaction history for a network
  */
 export async function getTransactionHistory(networkId: string, limit?: number): Promise<Transaction[]> {
+  console.log(`Getting transaction history for network: ${networkId}`);
+  
+  // Initialize the network array if it doesn't exist
+  if (!deployedTransactions[networkId]) {
+    deployedTransactions[networkId] = [];
+  }
+  
   // Get deployed transactions for this network
   const deployed = deployedTransactions[networkId] || [];
+  
+  console.log(`Deployed transactions count: ${deployed.length}`);
   
   // Initialize or use cache
   if (!transactionCache[networkId]) {
@@ -110,10 +130,10 @@ export async function getTransactionHistory(networkId: string, limit?: number): 
     return timeOrder.indexOf(a.time) - timeOrder.indexOf(b.time);
   });
   
-  console.log("Deployed transactions:", deployedTransactions[networkId]);
-  console.log("Combined transactions:", combinedTransactions);
+  console.log(`Combined transactions count: ${combinedTransactions.length}`);
   
-  await new Promise(resolve => setTimeout(resolve, 800));
+  // A small delay to simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   return limit ? combinedTransactions.slice(0, limit) : combinedTransactions;
 }
@@ -203,65 +223,95 @@ export async function deployOptimizedTransaction(
   transactionType: string,
   optimizedGasPrice: number
 ): Promise<{hash: string, status: string}> {
+  console.log(`Deploying transaction on ${networkId} network for type: ${transactionType}`);
+  
+  // Create a pending transaction first so the UI can show it immediately
+  const pendingHash = generateTransactionHash();
+  const txType = transactionTypes.find((t) => t.id === transactionType);
+  
+  if (!txType) {
+    console.error("Invalid transaction type:", transactionType);
+    toast.error("Invalid transaction type");
+    throw new Error("Invalid transaction type");
+  }
+  
+  // Create a pending transaction
+  const pendingTransaction: Transaction = {
+    hash: pendingHash,
+    type: txType.name,
+    status: "pending",
+    time: "Just now",
+    gasUsed: txType.gasEstimate,
+    gasFee: Number(((txType.gasEstimate * optimizedGasPrice * 10**9) / 10**18).toFixed(6)),
+    network: networkId,
+    optimized: true,
+    savings: 0 // Will be calculated after "success"
+  };
+  
+  // Initialize the network array if it doesn't exist
+  if (!deployedTransactions[networkId]) {
+    deployedTransactions[networkId] = [];
+  }
+  
+  // Add the pending transaction
+  deployedTransactions[networkId].unshift(pendingTransaction);
+  
+  console.log("Added pending transaction:", pendingTransaction);
+  
   // Simulate network delay for realism
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
   try {
     // Simulate contract interaction
     const contractCallSuccess = await simulateContractCall(networkId);
     
     if (!contractCallSuccess) {
+      console.error("Smart contract execution failed");
+      
+      // Update the transaction to failed status
+      const idx = deployedTransactions[networkId].findIndex(tx => tx.hash === pendingHash);
+      if (idx !== -1) {
+        deployedTransactions[networkId][idx].status = "failed";
+      }
+      
       toast.error("Smart contract execution failed");
       throw new Error("Contract execution failed");
     }
     
-    // Generate a valid transaction hash
-    const hash = generateTransactionHash();
-    
-    // Find the transaction type details
-    const txType = transactionTypes.find((t) => t.id === transactionType);
-    if (!txType) {
-      throw new Error("Invalid transaction type");
-    }
-    
+    // Calculate the gas fees and savings
     const gasEstimate = txType.gasEstimate;
     const currentGasPrice = mockGasPrices[networkId]?.standard || 30;
     const gasFee = Number(((gasEstimate * optimizedGasPrice * 10**9) / 10**18).toFixed(6));
     const originalGasFee = Number(((gasEstimate * currentGasPrice * 10**9) / 10**18).toFixed(6));
     const savings = Number((originalGasFee - gasFee).toFixed(6));
     
-    // Create the transaction record
-    const newTransaction: Transaction = {
-      hash,
-      type: txType.name,
-      status: "success",
-      time: "Just now",
-      gasUsed: gasEstimate,
-      gasFee,
-      network: networkId,
-      optimized: true,
-      savings
-    };
-    
-    // Store the deployed transaction
-    if (!deployedTransactions[networkId]) {
-      deployedTransactions[networkId] = [];
+    // Update the pending transaction to success
+    const idx = deployedTransactions[networkId].findIndex(tx => tx.hash === pendingHash);
+    if (idx !== -1) {
+      deployedTransactions[networkId][idx].status = "success";
+      deployedTransactions[networkId][idx].savings = savings;
+    } else {
+      console.error("Could not find pending transaction to update:", pendingHash);
     }
     
-    // Add to the beginning of the array to show newest first
-    deployedTransactions[networkId].unshift(newTransaction);
-    
-    console.log("Transaction deployed:", newTransaction);
+    console.log("Updated transaction to success:", deployedTransactions[networkId][idx]);
     console.log("Current deployed transactions:", deployedTransactions[networkId]);
     
     toast.success("Transaction deployed successfully!");
     
     return {
-      hash,
+      hash: pendingHash,
       status: "success"
     };
   } catch (error) {
     console.error("Transaction deployment error:", error);
+    
+    // Ensure the transaction is marked as failed
+    const idx = deployedTransactions[networkId].findIndex(tx => tx.hash === pendingHash);
+    if (idx !== -1) {
+      deployedTransactions[networkId][idx].status = "failed";
+    }
+    
     toast.error("Transaction deployment failed: " + (error instanceof Error ? error.message : "Unknown error"));
     throw error;
   }

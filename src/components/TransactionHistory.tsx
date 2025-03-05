@@ -21,17 +21,18 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
     queryKey: ['transaction-history', networkId, limit],
     queryFn: () => getTransactionHistory(networkId, limit),
     refetchOnWindowFocus: true,
-    staleTime: 10000, // Refetch after 10 seconds
+    staleTime: 5000, // Refetch after 5 seconds to ensure we get fresh data
   });
 
   // Auto-refresh transactions when component mounts or network changes
   useEffect(() => {
+    // Immediately refetch when component mounts or network changes
     refetch();
     
-    // Set up interval to refresh transactions every 30 seconds
+    // Set up interval to refresh transactions every 10 seconds
     const intervalId = setInterval(() => {
       refetch();
-    }, 30000);
+    }, 10000);
     
     return () => clearInterval(intervalId);
   }, [networkId, refetch]);
@@ -105,6 +106,8 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
                     {tx.status === "success" ? (
                       <CheckCircle className="h-4 w-4 text-primary" />
+                    ) : tx.status === "pending" ? (
+                      <Clock className="h-4 w-4 text-primary animate-pulse" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-destructive" />
                     )}
@@ -115,6 +118,11 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
                       <Badge variant="outline" className="ml-2 text-xs">
                         {tx.network}
                       </Badge>
+                      {tx.status === "pending" && (
+                        <Badge variant="outline" className="ml-2 text-xs bg-amber-500/10 text-amber-500 border-amber-500/10">
+                          Pending
+                        </Badge>
+                      )}
                       {tx.optimized && (
                         <Badge variant="outline" className="ml-2 text-xs bg-primary/10 text-primary border-primary/10">
                           Optimized
