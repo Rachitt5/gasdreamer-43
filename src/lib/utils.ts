@@ -1,6 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { mockGasPrices } from "./gasData"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -68,4 +69,28 @@ export function truncateAddress(address: string): string {
 // Calculate the percentage of a value within a range
 export function calculatePercentage(value: number, min: number, max: number): number {
   return Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
+}
+
+// Calculate estimate fee in USD
+export function calculateFeeInUSD(gasLimit: number, gasPrice: number, network: string): number {
+  const networkData = mockGasPrices[network] || mockGasPrices.ethereum;
+  const { usdPrice } = networkData;
+  
+  // Convert to proper units based on network
+  let ethCost;
+  
+  if (network === "ethereum" || network === "arbitrum" || network === "optimism") {
+    // ETH uses Gwei, 1 Gwei = 10^9 Wei, 1 ETH = 10^18 Wei
+    ethCost = (gasLimit * gasPrice * 10**9) / 10**18;
+  } else if (network === "polygon") {
+    // Similar to ETH but with MATIC
+    ethCost = (gasLimit * gasPrice * 10**9) / 10**18;
+  } else if (network === "bsc") {
+    // BNB uses Gwei like ETH
+    ethCost = (gasLimit * gasPrice * 10**9) / 10**18;
+  } else {
+    ethCost = 0;
+  }
+  
+  return ethCost * usdPrice;
 }
