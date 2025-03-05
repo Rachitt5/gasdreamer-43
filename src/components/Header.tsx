@@ -5,7 +5,11 @@ import { WalletConnect } from "@/components/WalletConnect";
 import { NetworkSelector } from "@/components/NetworkSelector";
 import { Wallet, Menu } from "lucide-react";
 
-export function Header() {
+interface HeaderProps {
+  onNetworkChange?: (network: string) => void;
+}
+
+export function Header({ onNetworkChange }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   
   return (
@@ -34,7 +38,7 @@ export function Header() {
         
         <div className="flex items-center gap-2">
           <div className="hidden sm:block">
-            <NetworkSelector />
+            <NetworkSelector onNetworkChange={onNetworkChange} />
           </div>
           <WalletConnect />
           
@@ -57,7 +61,7 @@ export function Header() {
               History
             </Button>
             <div className="pt-2">
-              <NetworkSelector isMobile />
+              <NetworkSelector isMobile onNetworkChange={onNetworkChange} />
             </div>
           </div>
         </div>

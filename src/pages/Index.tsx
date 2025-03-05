@@ -4,14 +4,19 @@ import { Header } from "@/components/Header";
 import { GasMeter } from "@/components/GasMeter";
 import { PredictionChart } from "@/components/PredictionChart";
 import { TransactionHistory } from "@/components/TransactionHistory";
+import { GasOptimizeModal } from "@/components/GasOptimizeModal";
+import { GasAlertModal } from "@/components/GasAlertModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gauge, Rocket, BadgePercent } from "lucide-react";
 import { transactionTypes } from "@/lib/gasData";
+import { toast } from "sonner";
 
 const Index = () => {
   const [loading, setLoading] = useState(true);
   const [selectedNetwork, setSelectedNetwork] = useState("ethereum");
+  const [optimizeModalOpen, setOptimizeModalOpen] = useState(false);
+  const [alertModalOpen, setAlertModalOpen] = useState(false);
   
   useEffect(() => {
     // Simulate loading data
@@ -22,9 +27,14 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleNetworkChange = (network: string) => {
+    setSelectedNetwork(network);
+    toast.success(`Switched to ${network.charAt(0).toUpperCase() + network.slice(1)} network`);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Header />
+      <Header onNetworkChange={handleNetworkChange} />
       
       <main className="container px-4 sm:px-6 pt-24 pb-16 mx-auto">
         <div className="mb-8 text-center md:text-left">
@@ -85,7 +95,11 @@ const Index = () => {
                         <p className="text-sm text-muted-foreground mb-3">
                           Save up to 42% on gas by bundling multiple transactions together.
                         </p>
-                        <Button className="w-full" size="sm">
+                        <Button 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => setOptimizeModalOpen(true)}
+                        >
                           Optimize Now
                         </Button>
                       </div>
@@ -98,7 +112,12 @@ const Index = () => {
                         <p className="text-sm text-muted-foreground mb-3">
                           Get notified when gas fees drop below your target price.
                         </p>
-                        <Button variant="outline" className="w-full" size="sm">
+                        <Button 
+                          variant="outline" 
+                          className="w-full" 
+                          size="sm"
+                          onClick={() => setAlertModalOpen(true)}
+                        >
                           Set Alert
                         </Button>
                       </div>
@@ -138,7 +157,12 @@ const Index = () => {
                         </div>
                       ))}
                       
-                      <Button variant="outline" className="w-full mt-2" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full mt-2" 
+                        size="sm"
+                        onClick={() => setOptimizeModalOpen(true)}
+                      >
                         View All Transactions
                       </Button>
                     </div>
@@ -154,6 +178,19 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      {/* Modals */}
+      <GasOptimizeModal 
+        open={optimizeModalOpen} 
+        onOpenChange={setOptimizeModalOpen} 
+        networkId={selectedNetwork}
+      />
+
+      <GasAlertModal
+        open={alertModalOpen}
+        onOpenChange={setAlertModalOpen}
+        networkId={selectedNetwork}
+      />
     </div>
   );
 };

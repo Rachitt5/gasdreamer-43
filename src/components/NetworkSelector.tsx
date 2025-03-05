@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,18 @@ import { cn } from "@/lib/utils";
 
 interface NetworkSelectorProps {
   isMobile?: boolean;
+  onNetworkChange?: (network: string) => void;
 }
 
-export function NetworkSelector({ isMobile = false }: NetworkSelectorProps) {
+export function NetworkSelector({ isMobile = false, onNetworkChange }: NetworkSelectorProps) {
   const [selectedNetwork, setSelectedNetwork] = useState(networks[0]);
+
+  const handleNetworkChange = (network: typeof networks[0]) => {
+    setSelectedNetwork(network);
+    if (onNetworkChange) {
+      onNetworkChange(network.id);
+    }
+  };
 
   const getNetworkIcon = (icon: string) => {
     switch (icon) {
@@ -85,7 +92,7 @@ export function NetworkSelector({ isMobile = false }: NetworkSelectorProps) {
                   "flex items-center justify-start h-10 px-3",
                   selectedNetwork.id === network.id && "border-primary bg-primary/5"
                 )}
-                onClick={() => setSelectedNetwork(network)}
+                onClick={() => handleNetworkChange(network)}
               >
                 <div className="mr-2 h-5 w-5 rounded-full flex items-center justify-center">
                   {getNetworkIcon(network.icon)}
@@ -117,7 +124,7 @@ export function NetworkSelector({ isMobile = false }: NetworkSelectorProps) {
                   "flex items-center cursor-pointer",
                   selectedNetwork.id === network.id && "bg-primary/5"
                 )}
-                onClick={() => setSelectedNetwork(network)}
+                onClick={() => handleNetworkChange(network)}
               >
                 <div className="mr-2 h-4 w-4 rounded-full flex items-center justify-center">
                   {getNetworkIcon(network.icon)}

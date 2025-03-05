@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { truncateAddress } from "@/lib/utils";
+import { toast } from "sonner";
 
 export function WalletConnect() {
   const [connected, setConnected] = useState(false);
@@ -25,12 +26,14 @@ export function WalletConnect() {
       setAddress("0xf3b1eD4A0c7F967B2529e9196CE4De53f85D398C");
       setConnected(true);
       setLoading(false);
+      toast.success("Wallet connected successfully!");
     }, 1500);
   };
 
   const handleDisconnect = () => {
     setAddress("");
     setConnected(false);
+    toast.info("Wallet disconnected");
   };
 
   return (
@@ -79,6 +82,19 @@ export function WalletConnect() {
 
             <div className="text-sm text-muted-foreground">
               Gas saving features are now available. You can now optimize your transactions and save on gas fees.
+            </div>
+            
+            <div className="rounded-md bg-primary/5 p-3 mt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm font-medium">Account Balance</span>
+                  <p className="text-lg font-bold">1.245 ETH</p>
+                  <span className="text-xs text-muted-foreground">$3,910.50 USD</span>
+                </div>
+                <Button size="sm" onClick={() => toast.success("Successfully refreshed balance!")}>
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
