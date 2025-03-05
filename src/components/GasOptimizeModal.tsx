@@ -39,6 +39,12 @@ export function GasOptimizeModal({
   useEffect(() => {
     if (transactionType && open) {
       setSelectedTxTypes([transactionType]);
+      
+      // Reset state when modal opens
+      setStep("select");
+      setDeploymentStatus("idle");
+      setDeployedHash(null);
+      setOptimizationResult(null);
     }
   }, [transactionType, open]);
 
@@ -69,16 +75,31 @@ export function GasOptimizeModal({
   };
 
   const handleDeploy = async () => {
-    if (!optimizationResult) return;
+    if (!optimizationResult) {
+      toast.error("No optimization result found");
+      return;
+    }
     
     setDeploymentStatus("pending");
+    setStep("deploy");
+    
     try {
+      // Use the first selected transaction type or fallback
       const txType = selectedTxTypes[0] || transactionType || "transfer";
+      
+      console.log("Deploying transaction:", {
+        networkId,
+        txType,
+        gasPrice: optimizationResult.suggestedGasPrice
+      });
+      
       const result = await deployOptimizedTransaction(
         networkId,
         txType,
         optimizationResult.suggestedGasPrice
       );
+      
+      console.log("Deployment result:", result);
       
       setDeployedHash(result.hash);
       setDeploymentStatus("success");
@@ -90,15 +111,15 @@ export function GasOptimizeModal({
       }, 3000);
       
     } catch (error) {
-      setDeploymentStatus("error");
-      toast.error("Deployment failed. Please try again.");
       console.error("Deployment error:", error);
+      setDeploymentStatus("error");
+      toast.error("Smart contract execution failed. Please try again.");
     }
   };
 
   const resetState = () => {
     setStep("select");
-    setSelectedTxTypes([]);
+    setSelectedTxTypes(transactionType ? [transactionType] : []);
     setOptimizationResult(null);
     setDeploymentStatus("idle");
     setDeployedHash(null);

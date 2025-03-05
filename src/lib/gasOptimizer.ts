@@ -34,6 +34,15 @@ const generateTransactionHash = () => {
     Math.floor(Math.random() * 16).toString(16)).join('');
 };
 
+// Simulate smart contract interaction
+const simulateContractCall = async (networkId: string): Promise<boolean> => {
+  // Simulate network latency and contract execution
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // 95% success rate for simulation
+  return Math.random() < 0.95;
+};
+
 const generateMockTransactions = (networkId: string, count: number = 10): Transaction[] => {
   const network = networks.find(n => n.id === networkId) || networks[0];
   const txTypes = transactionTypes.map(t => t.name);
@@ -100,6 +109,9 @@ export async function getTransactionHistory(networkId: string, limit?: number): 
     const timeOrder = ["Just now", "2 minutes ago", "15 minutes ago", "1 hour ago", "3 hours ago", "Yesterday", "2 days ago"];
     return timeOrder.indexOf(a.time) - timeOrder.indexOf(b.time);
   });
+  
+  console.log("Deployed transactions:", deployedTransactions[networkId]);
+  console.log("Combined transactions:", combinedTransactions);
   
   await new Promise(resolve => setTimeout(resolve, 800));
   
@@ -192,53 +204,56 @@ export async function deployOptimizedTransaction(
   optimizedGasPrice: number
 ): Promise<{hash: string, status: string}> {
   // Simulate network delay for realism
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1500));
   
   try {
+    // Simulate contract interaction
+    const contractCallSuccess = await simulateContractCall(networkId);
+    
+    if (!contractCallSuccess) {
+      toast.error("Smart contract execution failed");
+      throw new Error("Contract execution failed");
+    }
+    
     // Generate a valid transaction hash
     const hash = generateTransactionHash();
     
     // Find the transaction type details
     const txType = transactionTypes.find((t) => t.id === transactionType);
-    if (txType) {
-      const gasEstimate = txType.gasEstimate;
-      const currentGasPrice = mockGasPrices[networkId]?.standard || 30;
-      const gasFee = Number(((gasEstimate * optimizedGasPrice * 10**9) / 10**18).toFixed(6));
-      const originalGasFee = Number(((gasEstimate * currentGasPrice * 10**9) / 10**18).toFixed(6));
-      const savings = Number((originalGasFee - gasFee).toFixed(6));
-      
-      // Create the transaction record
-      const newTransaction: Transaction = {
-        hash,
-        type: txType.name,
-        status: "success",
-        time: "Just now",
-        gasUsed: gasEstimate,
-        gasFee,
-        network: networkId,
-        optimized: true,
-        savings
-      };
-      
-      // Store the deployed transaction
-      if (!deployedTransactions[networkId]) {
-        deployedTransactions[networkId] = [];
-      }
-      
-      // Add to the beginning of the array to show newest first
-      deployedTransactions[networkId].unshift(newTransaction);
-      
-      console.log("Transaction deployed:", newTransaction);
-      
-      toast.success("Transaction deployed successfully!");
-      
-      return {
-        hash,
-        status: "success"
-      };
+    if (!txType) {
+      throw new Error("Invalid transaction type");
     }
     
-    // If transaction type not found
+    const gasEstimate = txType.gasEstimate;
+    const currentGasPrice = mockGasPrices[networkId]?.standard || 30;
+    const gasFee = Number(((gasEstimate * optimizedGasPrice * 10**9) / 10**18).toFixed(6));
+    const originalGasFee = Number(((gasEstimate * currentGasPrice * 10**9) / 10**18).toFixed(6));
+    const savings = Number((originalGasFee - gasFee).toFixed(6));
+    
+    // Create the transaction record
+    const newTransaction: Transaction = {
+      hash,
+      type: txType.name,
+      status: "success",
+      time: "Just now",
+      gasUsed: gasEstimate,
+      gasFee,
+      network: networkId,
+      optimized: true,
+      savings
+    };
+    
+    // Store the deployed transaction
+    if (!deployedTransactions[networkId]) {
+      deployedTransactions[networkId] = [];
+    }
+    
+    // Add to the beginning of the array to show newest first
+    deployedTransactions[networkId].unshift(newTransaction);
+    
+    console.log("Transaction deployed:", newTransaction);
+    console.log("Current deployed transactions:", deployedTransactions[networkId]);
+    
     toast.success("Transaction deployed successfully!");
     
     return {
@@ -247,7 +262,7 @@ export async function deployOptimizedTransaction(
     };
   } catch (error) {
     console.error("Transaction deployment error:", error);
-    toast.error("Transaction deployment failed");
+    toast.error("Transaction deployment failed: " + (error instanceof Error ? error.message : "Unknown error"));
     throw error;
   }
 }

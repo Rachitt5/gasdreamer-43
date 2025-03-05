@@ -24,9 +24,16 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
     staleTime: 10000, // Refetch after 10 seconds
   });
 
-  // Auto-refresh transactions when component mounts
+  // Auto-refresh transactions when component mounts or network changes
   useEffect(() => {
     refetch();
+    
+    // Set up interval to refresh transactions every 30 seconds
+    const intervalId = setInterval(() => {
+      refetch();
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
   }, [networkId, refetch]);
 
   // Determine explorer URL based on network
