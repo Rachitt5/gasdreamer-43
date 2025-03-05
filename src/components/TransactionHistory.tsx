@@ -21,7 +21,7 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
     queryKey: ['transaction-history', networkId, limit],
     queryFn: () => getTransactionHistory(networkId, limit),
     refetchOnWindowFocus: true,
-    staleTime: 5000, // Refetch after 5 seconds to ensure we get fresh data
+    staleTime: 2000, // Refetch after 2 seconds to ensure we get fresh data
   });
 
   // Auto-refresh transactions when component mounts or network changes
@@ -29,10 +29,11 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
     // Immediately refetch when component mounts or network changes
     refetch();
     
-    // Set up interval to refresh transactions every 10 seconds
+    // Set up interval to refresh transactions every 5 seconds
     const intervalId = setInterval(() => {
+      console.log("Auto-refreshing transaction history");
       refetch();
-    }, 10000);
+    }, 5000);
     
     return () => clearInterval(intervalId);
   }, [networkId, refetch]);
@@ -99,15 +100,19 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
             {transactions?.map((tx, index) => (
               <div 
                 key={tx.hash} 
-                className="border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in-up"
+                className={`border rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in-up ${tx.status === "pending" ? "border-amber-500/50 bg-amber-50/10" : ""}`}
                 style={{ animationDelay: `${index * 150}ms` }}
               >
                 <div className="flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${
+                    tx.status === "success" ? "bg-primary/10" : 
+                    tx.status === "pending" ? "bg-amber-500/10" : 
+                    "bg-destructive/10"
+                  }`}>
                     {tx.status === "success" ? (
                       <CheckCircle className="h-4 w-4 text-primary" />
                     ) : tx.status === "pending" ? (
-                      <Clock className="h-4 w-4 text-primary animate-pulse" />
+                      <Clock className="h-4 w-4 text-amber-500 animate-pulse" />
                     ) : (
                       <AlertCircle className="h-4 w-4 text-destructive" />
                     )}
@@ -121,6 +126,11 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
                       {tx.status === "pending" && (
                         <Badge variant="outline" className="ml-2 text-xs bg-amber-500/10 text-amber-500 border-amber-500/10">
                           Pending
+                        </Badge>
+                      )}
+                      {tx.status === "failed" && (
+                        <Badge variant="outline" className="ml-2 text-xs bg-destructive/10 text-destructive border-destructive/10">
+                          Failed
                         </Badge>
                       )}
                       {tx.optimized && (
@@ -145,7 +155,10 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
                   </div>
                 </div>
                 <div className="flex flex-col sm:items-end">
-                  <Badge variant="outline" className="w-fit bg-gas-low/10 text-gas-low border-gas-low/10">
+                  <Badge variant="outline" className={`w-fit ${
+                    tx.status === "pending" ? "bg-amber-500/10 text-amber-500 border-amber-500/10" :
+                    "bg-gas-low/10 text-gas-low border-gas-low/10"
+                  }`}>
                     {tx.gasFee.toFixed(6)} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
                   </Badge>
                   <span className="text-xs text-muted-foreground mt-1">

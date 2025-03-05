@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { transactionTypes, mockGasPrices, networks } from "./gasData";
 import { formatGwei, formatUSD, calculateFeeInUSD } from "./utils";
@@ -42,18 +41,27 @@ const generateTransactionHash = () => {
     Math.floor(Math.random() * 16).toString(16)).join('');
 };
 
-// Simulate smart contract interaction
+// Simulate smart contract interaction with better reliability and logging
 const simulateContractCall = async (networkId: string): Promise<boolean> => {
   console.log(`Simulating contract call on network: ${networkId}`);
+  
   // Simulate network latency and contract execution
   await new Promise(resolve => setTimeout(resolve, 1500));
   
-  // 95% success rate for simulation
-  const success = Math.random() < 0.95;
+  // Increase success rate to 98% for better reliability
+  const success = Math.random() < 0.98;
+  
   console.log(`Contract call simulation result: ${success ? 'success' : 'failed'}`);
+  
+  // Log more details for debugging
+  if (!success) {
+    console.error(`Contract call failed on ${networkId} network. This is a simulated failure.`);
+  }
+  
   return success;
 };
 
+// Generate mock transactions with more realistic data
 const generateMockTransactions = (networkId: string, count: number = 10): Transaction[] => {
   const network = networks.find(n => n.id === networkId) || networks[0];
   const txTypes = transactionTypes.map(t => t.name);
@@ -106,7 +114,10 @@ export async function getTransactionHistory(networkId: string, limit?: number): 
   // Get deployed transactions for this network
   const deployed = deployedTransactions[networkId] || [];
   
-  console.log(`Deployed transactions count: ${deployed.length}`);
+  console.log(`Deployed transactions count for ${networkId}: ${deployed.length}`);
+  if (deployed.length > 0) {
+    console.log(`Latest deployed transaction hash: ${deployed[0].hash}`);
+  }
   
   // Initialize or use cache
   if (!transactionCache[networkId]) {
@@ -133,7 +144,7 @@ export async function getTransactionHistory(networkId: string, limit?: number): 
   console.log(`Combined transactions count: ${combinedTransactions.length}`);
   
   // A small delay to simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 300));
   
   return limit ? combinedTransactions.slice(0, limit) : combinedTransactions;
 }
@@ -216,7 +227,7 @@ export async function bundleTransactions(
 }
 
 /**
- * Deploy optimized transaction to the blockchain
+ * Deploy optimized transaction to the blockchain with improved error handling
  */
 export async function deployOptimizedTransaction(
   networkId: string,
@@ -253,16 +264,17 @@ export async function deployOptimizedTransaction(
     deployedTransactions[networkId] = [];
   }
   
-  // Add the pending transaction
+  // Add the pending transaction to the BEGINNING of the array (newest first)
   deployedTransactions[networkId].unshift(pendingTransaction);
   
   console.log("Added pending transaction:", pendingTransaction);
+  console.log("Current deployed transactions for network:", deployedTransactions[networkId]);
   
   // Simulate network delay for realism
   await new Promise(resolve => setTimeout(resolve, 2000));
   
   try {
-    // Simulate contract interaction
+    // Simulate contract interaction with proper error handling
     const contractCallSuccess = await simulateContractCall(networkId);
     
     if (!contractCallSuccess) {
@@ -272,6 +284,9 @@ export async function deployOptimizedTransaction(
       const idx = deployedTransactions[networkId].findIndex(tx => tx.hash === pendingHash);
       if (idx !== -1) {
         deployedTransactions[networkId][idx].status = "failed";
+        console.log("Updated transaction status to failed:", deployedTransactions[networkId][idx]);
+      } else {
+        console.error("Could not find pending transaction with hash:", pendingHash);
       }
       
       toast.error("Smart contract execution failed");
@@ -290,12 +305,23 @@ export async function deployOptimizedTransaction(
     if (idx !== -1) {
       deployedTransactions[networkId][idx].status = "success";
       deployedTransactions[networkId][idx].savings = savings;
+      console.log("Updated transaction to success:", deployedTransactions[networkId][idx]);
     } else {
       console.error("Could not find pending transaction to update:", pendingHash);
+      
+      // If we can't find the transaction for some reason, add it as a new one
+      const successfulTransaction: Transaction = {
+        ...pendingTransaction,
+        status: "success",
+        savings: savings
+      };
+      
+      deployedTransactions[networkId].unshift(successfulTransaction);
+      console.log("Added new successful transaction:", successfulTransaction);
     }
     
-    console.log("Updated transaction to success:", deployedTransactions[networkId][idx]);
-    console.log("Current deployed transactions:", deployedTransactions[networkId]);
+    // Log the current state of deployed transactions
+    console.log("Current deployed transactions count:", deployedTransactions[networkId].length);
     
     toast.success("Transaction deployed successfully!");
     
@@ -310,6 +336,9 @@ export async function deployOptimizedTransaction(
     const idx = deployedTransactions[networkId].findIndex(tx => tx.hash === pendingHash);
     if (idx !== -1) {
       deployedTransactions[networkId][idx].status = "failed";
+      console.log("Updated transaction status to failed:", deployedTransactions[networkId][idx]);
+    } else {
+      console.error("Could not find pending transaction with hash:", pendingHash);
     }
     
     toast.error("Transaction deployment failed: " + (error instanceof Error ? error.message : "Unknown error"));
