@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Check, Clock, TrendingDown, Flame, Loader2 } from "lucide-react";
+import { Check, Clock, TrendingDown, Flame, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { formatGwei, formatUSD } from "@/lib/utils";
 import { optimizeGasFee, bundleTransactions, deployOptimizedTransaction } from "@/lib/gasOptimizer";
 import { transactionTypes } from "@/lib/gasData";
@@ -33,7 +33,9 @@ export function GasOptimizeModal({
   const [loading, setLoading] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
   const [deploymentStatus, setDeploymentStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
+  const [deployedHash, setDeployedHash] = useState<string | null>(null);
 
+  // When opening modal with a transaction type, pre-select it
   useEffect(() => {
     if (transactionType && open) {
       setSelectedTxTypes([transactionType]);
@@ -60,7 +62,7 @@ export function GasOptimizeModal({
       setStep("review");
     } catch (error) {
       toast.error("Optimization failed. Please try again.");
-      console.error(error);
+      console.error("Optimization error:", error);
     } finally {
       setLoading(false);
     }
@@ -78,9 +80,10 @@ export function GasOptimizeModal({
         optimizationResult.suggestedGasPrice
       );
       
+      setDeployedHash(result.hash);
       setDeploymentStatus("success");
       
-      // Close modal after successful deployment
+      // Close modal after successful deployment with a delay
       setTimeout(() => {
         onOpenChange(false);
         resetState();
@@ -89,7 +92,7 @@ export function GasOptimizeModal({
     } catch (error) {
       setDeploymentStatus("error");
       toast.error("Deployment failed. Please try again.");
-      console.error(error);
+      console.error("Deployment error:", error);
     }
   };
 
@@ -98,6 +101,7 @@ export function GasOptimizeModal({
     setSelectedTxTypes([]);
     setOptimizationResult(null);
     setDeploymentStatus("idle");
+    setDeployedHash(null);
   };
 
   const handleClose = () => {
@@ -105,24 +109,36 @@ export function GasOptimizeModal({
     resetState();
   };
 
+  // Update title based on step and deployment status
+  const getTitle = () => {
+    if (step === "select") return "Select Transactions to Optimize";
+    if (step === "optimize") return "Optimizing Gas Fees";
+    if (step === "review") return "Optimization Results";
+    if (step === "deploy") {
+      if (deploymentStatus === "pending") return "Deploying Transaction";
+      if (deploymentStatus === "success") return "Transaction Deployed";
+      if (deploymentStatus === "error") return "Deployment Failed";
+      return "Deploy Transaction";
+    }
+    return "Optimize Gas";
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {step === "select" && "Select Transactions to Optimize"}
-            {step === "optimize" && "Optimizing Gas Fees"}
-            {step === "review" && "Optimization Results"}
-            {step === "deploy" && "Deploying Transaction"}
-          </DialogTitle>
+          <DialogTitle>{getTitle()}</DialogTitle>
           <DialogDescription>
             {step === "select" && "Choose which transactions you want to optimize. Bundling multiple transactions can save more gas."}
             {step === "optimize" && "Our AI is finding the best parameters to minimize your gas fees..."}
             {step === "review" && "Review your optimized transaction details before deploying"}
-            {step === "deploy" && "Submitting your transaction to the blockchain..."}
+            {step === "deploy" && deploymentStatus === "pending" && "Submitting your transaction to the blockchain..."}
+            {step === "deploy" && deploymentStatus === "success" && "Your transaction has been successfully deployed to the blockchain"}
+            {step === "deploy" && deploymentStatus === "error" && "There was an error deploying your transaction. Please try again."}
           </DialogDescription>
         </DialogHeader>
 
+        {/* Step 1: Select Transaction Types */}
         {step === "select" && (
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-1 gap-3">
@@ -160,6 +176,7 @@ export function GasOptimizeModal({
           </div>
         )}
 
+        {/* Step 2: Optimize */}
         {step === "optimize" && (
           <div className="py-10 flex flex-col items-center justify-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
@@ -169,6 +186,7 @@ export function GasOptimizeModal({
           </div>
         )}
 
+        {/* Step 3: Review Results */}
         {step === "review" && optimizationResult && (
           <div className="space-y-4 py-4">
             <div className="rounded-lg border p-4 space-y-3">
@@ -210,6 +228,7 @@ export function GasOptimizeModal({
           </div>
         )}
 
+        {/* Step 4: Deploy */}
         {step === "deploy" && (
           <div className="py-6 flex flex-col items-center justify-center">
             {deploymentStatus === "pending" && (
@@ -227,16 +246,21 @@ export function GasOptimizeModal({
                   <Check className="h-8 w-8 text-gas-low" />
                 </div>
                 <p className="text-center font-medium mb-1">Transaction Successfully Deployed!</p>
-                <p className="text-center text-muted-foreground text-sm">
+                <p className="text-center text-muted-foreground text-sm mb-3">
                   Your transaction has been submitted and will be processed shortly.
                 </p>
+                {deployedHash && (
+                  <div className="text-center text-xs text-muted-foreground">
+                    Transaction Hash: {deployedHash.substring(0, 12)}...{deployedHash.substring(deployedHash.length - 8)}
+                  </div>
+                )}
               </>
             )}
             
             {deploymentStatus === "error" && (
               <>
                 <div className="rounded-full bg-destructive/10 p-4 mb-4">
-                  <Flame className="h-8 w-8 text-destructive" />
+                  <AlertCircle className="h-8 w-8 text-destructive" />
                 </div>
                 <p className="text-center font-medium mb-1">Transaction Failed</p>
                 <p className="text-center text-muted-foreground text-sm">
@@ -278,7 +302,14 @@ export function GasOptimizeModal({
               <Button variant="outline" onClick={() => setStep("select")}>
                 Back
               </Button>
-              <Button onClick={() => setStep("deploy")} className="ml-2" disabled={deploymentStatus === "pending"}>
+              <Button 
+                onClick={() => {
+                  setStep("deploy");
+                  handleDeploy();
+                }} 
+                className="ml-2" 
+                disabled={deploymentStatus === "pending"}
+              >
                 Deploy Now
               </Button>
             </>

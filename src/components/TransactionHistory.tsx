@@ -5,9 +5,10 @@ import { truncateAddress } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, ExternalLink, ArrowRight, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, ExternalLink, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { networks } from "@/lib/gasData";
+import { useEffect } from "react";
 
 interface TransactionHistoryProps {
   networkId: string;
@@ -16,12 +17,17 @@ interface TransactionHistoryProps {
 }
 
 export function TransactionHistory({ networkId, limit = 3, showViewAll = true }: TransactionHistoryProps) {
-  const { data: transactions, isLoading, refetch } = useQuery({
+  const { data: transactions, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['transaction-history', networkId, limit],
     queryFn: () => getTransactionHistory(networkId, limit),
     refetchOnWindowFocus: true,
     staleTime: 10000, // Refetch after 10 seconds
   });
+
+  // Auto-refresh transactions when component mounts
+  useEffect(() => {
+    refetch();
+  }, [networkId, refetch]);
 
   // Determine explorer URL based on network
   const getExplorerUrl = (hash: string, network: string) => {
@@ -39,13 +45,24 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
           <CardTitle className="text-lg">Recent Transactions</CardTitle>
           <CardDescription>Your recent transaction history</CardDescription>
         </div>
-        {showViewAll && (
-          <Button variant="ghost" size="sm" asChild className="ml-auto">
-            <Link to="/history">
-              View All <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => refetch()} 
+            disabled={isFetching}
+            className={isFetching ? "animate-spin" : ""}
+          >
+            <RefreshCw className="h-4 w-4" />
           </Button>
-        )}
+          {showViewAll && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/history">
+                View All <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -64,6 +81,7 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
               variant="outline" 
               className="mt-4"
               onClick={() => refetch()}
+              disabled={isFetching}
             >
               Refresh
             </Button>
@@ -113,14 +131,14 @@ export function TransactionHistory({ networkId, limit = 3, showViewAll = true }:
                 </div>
                 <div className="flex flex-col sm:items-end">
                   <Badge variant="outline" className="w-fit bg-gas-low/10 text-gas-low border-gas-low/10">
-                    {tx.gasFee} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
+                    {tx.gasFee.toFixed(6)} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
                   </Badge>
                   <span className="text-xs text-muted-foreground mt-1">
                     {tx.time} • {tx.gasUsed.toLocaleString()} gas used
                   </span>
                   {tx.savings > 0 && (
                     <span className="text-xs text-gas-low mt-1">
-                      Saved: {tx.savings} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
+                      Saved: {tx.savings.toFixed(6)} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
                     </span>
                   )}
                 </div>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, ExternalLink, Clock, Filter, AlertCircle } from "lucide-react";
+import { CheckCircle, ExternalLink, Clock, Filter, AlertCircle, RefreshCw } from "lucide-react";
 import { truncateAddress } from "@/lib/utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,10 @@ const History = () => {
     toast.success(`Switched to ${network.charAt(0).toUpperCase() + network.slice(1)} network`);
   };
   
-  const { data: transactions, isLoading, refetch } = useQuery({
+  const { data: transactions, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['transaction-history', selectedNetwork],
     queryFn: () => getTransactionHistory(selectedNetwork),
+    refetchOnMount: true,
   });
 
   // Determine explorer URL based on network
@@ -48,7 +49,13 @@ const History = () => {
             </p>
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
-            <Button variant="outline" className="w-full md:w-auto" onClick={() => refetch()}>
+            <Button 
+              variant="outline" 
+              className="w-full md:w-auto" 
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? "animate-spin" : ""}`} />
               Refresh
             </Button>
             <Button variant="outline" className="w-full md:w-auto">
@@ -80,6 +87,7 @@ const History = () => {
                   variant="outline" 
                   className="mt-4"
                   onClick={() => refetch()}
+                  disabled={isFetching}
                 >
                   Refresh
                 </Button>
@@ -129,14 +137,14 @@ const History = () => {
                     </div>
                     <div className="flex flex-col sm:items-end">
                       <Badge variant="outline" className="w-fit bg-gas-low/10 text-gas-low border-gas-low/10">
-                        {tx.gasFee} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
+                        {tx.gasFee.toFixed(6)} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
                       </Badge>
                       <span className="text-xs text-muted-foreground mt-1">
                         {tx.time} • {tx.gasUsed.toLocaleString()} gas used
                       </span>
                       {tx.savings > 0 && (
                         <span className="text-xs text-gas-low mt-1">
-                          Saved: {tx.savings} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
+                          Saved: {tx.savings.toFixed(6)} {networks.find(n => n.id === tx.network)?.symbol || 'ETH'}
                         </span>
                       )}
                     </div>
